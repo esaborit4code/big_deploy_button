@@ -5,11 +5,13 @@ class BigDeployButton
 
   include PiPiper
 
-  DEPLOY_COMMAND = '`cat deploy_command`'
+  DEPLOY_COMMAND_FILE = File.join(File.dirname(__FILE__), './deploy_command')
+  DEPLOY_COMMAND = "`cat #{DEPLOY_COMMAND_FILE}`"
+  LOG_FILE = File.join(File.dirname(__FILE__), './log')
 
   def initialize
-    p "Initializing..."
-
+    log_this "Initializing..."
+    log_this "Deploy command will be #{ `cat deploy_command` }"
     @button = Pin.new(pin: 24, direction: :in, trigger: :rising)
     @white_led = Pin.new(pin: 22, direction: :out)
     @blue_led = Pin.new(pin: 21, direction: :out)
@@ -49,25 +51,30 @@ class BigDeployButton
   end
 
   def notify_deploy_in_progress
-    p "Deploying..."
+    log_this "Deploying..."
     @white_led_blink.exit if @white_led_blink
     blink_white_led(on_time: 1, off_time: 0.7)
   end
  
   def notify_deploy_finished_ok
-    p "Deploy finished OK"
+    log_this "Deploy finished OK"
     @white_led_blink.exit
     @white_led.off
   end
 
   def notify_deploy_finished_with_errors
-    p "Deploy finished with errors!"
+    log_this "Deploy finished with errors!"
     blink_white_led
-    p "Blinking white led"
+    log_this "Blinking white led"
   end
 
   def blink_white_led(options = { on_time: 0.2, off_time: 0.2 })
     @white_led_blink = blink_led(@white_led, options)
+  end
+
+  def log_this(message)
+    p message
+    system("echo \"#{Time.now} #{message}\" >> #{LOG_FILE}")
   end
 
   def blink_led(led, options = { on_time: 0.2, off_time: 0.2 })
